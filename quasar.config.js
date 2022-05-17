@@ -213,6 +213,7 @@ module.exports = configure(function (ctx) {
 
         // Windows only
         // win32metadata: { ... }
+        // platform: 'win32'
       },
 
       builder: {

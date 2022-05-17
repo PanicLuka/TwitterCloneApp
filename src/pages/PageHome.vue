@@ -1,6 +1,6 @@
 <template>
   <q-page class="relative-position">
-    <q-scroll-area class="absolute fullscreen">
+    <q-scroll-area class="absolute full-width full-height">
       <div class="q-py-lg q-px-md row items-end q-col-gutter-md">
         <div class="col">
           <q-input
@@ -40,7 +40,7 @@
           enter-active-class="animated fadeIn slow"
           leave-active-class="animated fadeOut slow"
         >
-          <q-item v-for="tweet in tweets" :key="tweet.date" class="q-py-md">
+          <q-item v-for="tweet in tweets" :key="tweet.id" class="q-py-md">
             <q-item-section avatar top>
               <q-avatar size="lg">
                 <img src="https://cdn.quasar.dev/img/avatar5.jpg" />
@@ -75,7 +75,14 @@
                   size="sm"
                   icon="fas fa-retweet"
                 />
-                <q-btn flat round color="grey" size="sm" icon="far fa-heart" />
+                <q-btn
+                  @click="likeATweet(tweet)"
+                  flat
+                  round
+                  :color="tweet.liked ? 'red' : 'grey'"
+                  size="sm"
+                  :icon="tweet.liked ? 'fas fa-heart' : 'far fa-heart'"
+                />
                 <q-btn
                   flat
                   round
@@ -103,6 +110,9 @@ import {
   onSnapshot,
   orderBy,
   addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 
 export default defineComponent({
@@ -112,28 +122,43 @@ export default defineComponent({
       newTweetContent: "",
       tweets: [
         // {
+        //   id: "ID1",
         //   content:
         //     "Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis non  delectus minima alias possimus, similique pariatur recusandae tenetur exercitationem maxime mollitia velit ipsum quia sequi ",
         //   date: 1652692024489,
+        //   liked: false,
         // },
         // {
+        //   id: "ID2",
         //   content:
         //     "Lorem ipsum dolor sit amet consectetur adipisicing elit. Nobis non  delectus minima alias possimus, similique pariatur recusandae tenetur exercitationem maxime mollitia velit ipsum quia sequi ",
         //   date: 1652692024483,
+        //   liked: true,
         // },
       ],
     };
   },
   methods: {
+    likeATweet(tweet) {
+      // const tweetToLike = doc(db, "tweets", tweet.id);
+      tweet.liked = !tweet.liked;
+
+      updateDoc(doc(db, "tweets", tweet.id), {
+        liked: tweet.liked,
+      });
+      // console.log(tweetToLike);
+    },
     deleteATweet(tweet) {
-      let dateToDelete = tweet.date;
-      let index = this.tweets.findIndex((tweet) => tweet.date === dateToDelete);
-      this.tweets.splice(index, 1);
+      // let dateToDelete = tweet.date;
+      // let index = this.tweets.findIndex((tweet) => tweet.date === dateToDelete);
+      // this.tweets.splice(index, 1);
+      deleteDoc(doc(db, "tweets", tweet.id));
     },
     addATweet() {
       let newTweet = {
         content: this.newTweetContent,
         date: Date.now(),
+        liked: false,
       };
 
       // this.tweets.unshift(newTweet);
@@ -150,15 +175,25 @@ export default defineComponent({
     const unsubscribe = onSnapshot(q, (snapshot) => {
       snapshot.docChanges().forEach((change) => {
         let tweetChange = change.doc.data();
+        tweetChange.id = change.doc.id;
         if (change.type === "added") {
           // console.log("New tweet: ", tweetChange);
           this.tweets.unshift(tweetChange);
         }
         if (change.type === "modified") {
           console.log("Modified tweet: ", tweetChange);
+          let index = this.tweets.findIndex(
+            (tweet) => tweet.id === tweetChange.id
+          );
+          // console.log("Idnex isL " + index);
+          Object.assign(this.tweet[index], tweetChange);
         }
         if (change.type === "removed") {
           console.log("Removed tweet: ", tweetChange);
+          let index = this.tweets.findIndex(
+            (tweet) => tweet.id === tweetChange.id
+          );
+          this.tweets.splice(index, 1);
         }
       });
     });
